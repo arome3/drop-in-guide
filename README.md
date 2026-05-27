@@ -34,10 +34,13 @@ Borrowed framing from AGIBOT's own embodied-AI taxonomy; the interaction layer i
 
 | Feature | dimOS provides | Drop-in Guide adds |
 |---|---|---|
-| Scene memory | `SpatialMemory` + `tag_location` + `query_tagged_location` | Generative priming workflow (robot proposes, operator verifies) |
-| Nav decisions | `navigate_with_text` with 3-tier resolution | Grounded narration before every action; audit trace stream |
-| Vision | Qwen-VL for object detection, `observe` returning raw frames | `describe_scene` — synchronous OpenAI Vision captioning that Claude can use directly |
-| Audio | `OpenAITTSNode` + local `sounddevice` | (planned) `UnitreeSpeak` WebRTC bridge for onboard Go2 speaker |
+| Scene memory | `SpatialMemory` + `tag_location` + `query_tagged_location` | Generative priming workflow (robot proposes, operator verifies); **time-aware recall** ("tagged about a minute ago") |
+| Nav decisions | `navigate_with_text` with 3-tier resolution | **Grounded narration** before every action; **JSONL audit trace** of every decision (`log_nav_decision` → `nav_trace.jsonl`) |
+| Person interaction | `follow_person` (continuous) | **`lead_to`** — follow-aware guidance that pauses + speaks "I'll wait for you" when the visitor falls behind |
+| Vision | Qwen-VL for object detection, `observe` returning raw frames | **`describe_scene`** — synchronous OpenAI Vision captioning that Claude can use directly |
+| Behavior | Default tool-use agent | **Confidence calibration** (`express_uncertainty`) — robot proactively says "I'm not sure" when warranted |
+| Conversation | One-shot Q&A | **Reactive Q&A** (`list_tagged_places`, `what_did_you_skip`) + **tour mode** (`narrate_tour`) for proactive overviews |
+| Audio | `OpenAITTSNode` + local `sounddevice` | (in progress) `UnitreeSpeak` WebRTC bridge for onboard Go2 speaker |
 
 ---
 
