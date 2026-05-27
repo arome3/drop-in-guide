@@ -60,3 +60,9 @@ Built for the **muShanghai 2026** hackathon (Agents track submission). 12 shots,
 4. **Shot 1, 5, 6** — voice trigger, skip beat, transition. Polish.
 
 In a worst-case forced 60s edit: 1, 3, 4, 7, 9, 10, 12.
+
+## Optional beats (if time/material allows)
+
+- **Tour mode**: visitor says "give me a quick tour" → robot calls `narrate_tour` → speaks: *"Here's the tour. I know 2 places: the printer, and the kitchen — both tagged a minute ago. Just say the word."* Adds a proactive feel.
+- **Confidence beat**: visitor asks about a place that wasn't tagged → robot calls `express_uncertainty` → speaks: *"I'm not sure about the bathroom — I haven't tagged it. Want me to make a best guess, or wait?"* Demonstrates calibrated honesty.
+- **Time-aware memory**: list_tagged_places now says "tagged about a minute ago" instead of just "tagged". Subtle but reinforces persistence.
