@@ -2,10 +2,12 @@
 # Drop-in Guide decision audit skill.
 # Claude calls `log_nav_decision` BEFORE every navigate_with_text so we
 # capture the grounding evidence (query, tier matched, similarity/confidence,
-# chosen target). The trail is written to a JSONL file at
-#   assets/output/drop_in_guide/nav_trace.jsonl
-# and also exposed via `recent_nav_decisions()` for in-conversation queries
-# and demo-time Rerun overlay rendering.
+# chosen target). The trail is written to:
+#   1. A JSONL file at assets/output/drop_in_guide/nav_trace.jsonl
+#   2. A Rerun TextDocument entity at /audit/nav_decisions  (renders as a
+#      panel in the Rerun viewer alongside the 3D world)
+#   3. A short Rerun TextLog entity at /audit/event  (timeline-style line)
+# And exposed via `recent_nav_decisions()` for in-conversation queries.
 #
 # This is the thesis carrier: every navigation choice becomes legible.
 
@@ -28,6 +30,29 @@ logger = setup_logger()
 _OUT_DIR = DIMOS_PROJECT_ROOT / "assets" / "output" / "drop_in_guide"
 _TRACE_PATH = _OUT_DIR / "nav_trace.jsonl"
 
+# Rerun integration is intentionally disabled here — calling rr.log() from
+# within the dimOS fork-server worker hangs when no recording stream is
+# attached (the worker process can't share the bridge's stream). We render
+# the audit panel in video post-production from the JSONL trace instead.
+# Marker file `nav_trace.jsonl` is the source of truth.
+
+
+def _fmt_panel(entries: list[dict[str, Any]], max_items: int = 5) -> str:
+    """Render the audit panel as a markdown document (used for export, not
+    live Rerun rendering)."""
+    if not entries:
+        return "# Drop-in Guide — Decision Audit\n\n_no decisions yet_"
+    lines = ["# Drop-in Guide — Decision Audit", ""]
+    now = time.time()
+    for e in entries[-max_items:][::-1]:
+        age_s = max(0.0, now - float(e["ts"]))
+        age = f"{age_s:.0f}s ago" if age_s < 60 else f"{age_s/60:.1f}m ago"
+        lines.append(
+            f"- **{e['query']}** → `{e['target']}`  "
+            f"_(tier: {e['matched_tier']}, conf {e['confidence']:.2f}, {age})_"
+        )
+    return "\n".join(lines)
+
 
 class DecisionAuditSkill(Module):
     """Audit trail for nav decisions — the system's grounded-evidence record."""
@@ -49,6 +74,13 @@ class DecisionAuditSkill(Module):
     @rpc
     def stop(self) -> None:
         super().stop()
+
+    def render_panel_markdown(self) -> str:
+        """Render the current audit trail as a markdown panel. Useful for
+        exporting to video overlays in post-production. Not exposed as an
+        LLM skill — call directly when generating demo assets.
+        """
+        return _fmt_panel(self._trace)
 
     @skill
     def log_nav_decision(
@@ -90,6 +122,7 @@ class DecisionAuditSkill(Module):
                 f.write(json.dumps(entry) + "\n")
         except OSError as e:
             logger.warning(f"failed to write nav_trace: {e}")
+
         return (
             f"Logged: query='{entry['query']}' tier={entry['matched_tier']} "
             f"confidence={entry['confidence']:.2f} target='{entry['target']}'"
